@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.242.1"
+    "aws-sdk": "^2.242.1",
+    "pg": "^7.4.3",
+    "sequelize": "^4.37.7"
   }
 }
