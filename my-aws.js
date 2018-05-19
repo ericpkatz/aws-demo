@@ -1,4 +1,5 @@
 const aws = require('aws-sdk');
+const chalk = require('chalk');
 
 const env = require('./env');
 
@@ -9,40 +10,40 @@ const S3 = new aws.S3({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 });
 
-const data = require('./avatar');
-console.log(data);
-
-console.log(process.env.AWS_BUCKET);
+require('bluebird').promisifyAll(S3);
 
 
 const bucket = {
   Bucket: process.env.AWS_BUCKET
 };
 
-S3.createBucket(bucket, (err, result)=> {
-  if(err){
-    console.log(err);
-    return;
-  }
+//pass in some data and get back a url
+const upload = (data) => {
+  let Key, Bucket;
+  return S3.createBucketAsync(bucket)
+    .then(()=> {
+      const extensions = data.split(';')[0].split('/');
+      const extension = extensions[extensions.length - 1];
+      const Body = new Buffer(data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      Key = `${Math.random()}.${extension}`;
+      Bucket = process.env.AWS_BUCKET;
 
-  const extensions = data.split(';')[0].split('/');
-  const extension = extensions[extensions.length - 1];
-  const Body = new Buffer(data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-  const Key = `${Math.random()}.${extension}`;
-  const Bucket = process.env.AWS_BUCKET;
+      return S3.putObject({
+        Bucket,
+        ACL: 'public-read',
+        Body,
+        ContentType: `image/${extension}`,
+        Key
+      })
+    })
+    .then(()=> {
+      return `https://s3.amazonaws.com/${Bucket}/${Key}`
+    });
+}
 
-  S3.putObject({
-    Bucket,
-    ACL: 'public-read',
-    Body,
-    ContentType: `image/${extension}`,
-    Key
-  }, (err, result)=> {
-    if(err){
-      console.log(err);
-      return
-    }
-    const url = `https://s3.amazonaws.com/${Bucket}/${Key}`
-    console.log(url);
-  });
-});
+upload(require('./avatar'))
+  .then( url => console.log(chalk.green(url)))
+  .catch( ex => console.log(ex));
+
+upload()
+  .catch( ex => console.log(chalk.red(ex)));
