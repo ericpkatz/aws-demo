@@ -50,33 +50,62 @@ class Bucket extends Component{
     super();
     this.state = {
       bucket: '',
-      objects: []
+      objects: [],
+      data: ''
     };
+    this.setData = this.setData.bind(this);
+    this.upload = this.upload.bind(this);
+    this.loadData = this.loadData.bind(this);
   }
-  componentDidMount(){
+  loadData(){
     const bucket = this.props.match.params.bucket; 
     axios.get(`/api/buckets/${bucket}`)
       .then( response => response.data)
       .then( objects => {
         this.setState({
           bucket,
-          objects
+          objects,
+          data: ''
         });
       }); 
   }
+  upload(){
+    axios.post(`/api/buckets/${this.state.bucket}`, { data: this.state.data})
+    .then(() => this.loadData())
+  }
+  setData(data){
+    this.setState({ data });
+  }
+  componentDidMount(){
+    this.loadData();
+  }
   render(){
-    const { bucket, objects } = this.state;
+    const { bucket, objects, data } = this.state;
+    const { setData, upload } = this;
     return (
-      <_Bucket bucket={ bucket } objects={ objects }/>
+      <_Bucket setData={ setData }  bucket={ bucket } objects={ objects } data={ data } upload={ upload }/>
     );
   }
 }
 
-const _Bucket = ({ bucket, objects })=> {
+const _Bucket = ({ bucket, objects, data, setData, upload })=> {
+  const onChangeFile = (ev) => {
+    const file = ev.target.files[0];
+    const fileReader = new FileReader();
+
+    fileReader.addEventListener('load', (ev)=> {
+      setData(ev.target.result);
+    });
+
+    fileReader.readAsDataURL(file);
+  };
+
   return (
     <div>
       <h1>{ bucket }</h1>
       <h2><Link to='/'>All Buckets</Link></h2>
+      <input type='file' onChange={ onChangeFile } />
+      <button disabled={ data.length === 0 } onClick={ upload }>Upload</button>
       <ul>
       {
         objects.map( object => (

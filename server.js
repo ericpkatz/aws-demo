@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 
 const app = express();
+app.use(require('body-parser').json());
 
 app.use('/dist', express.static(path.join(__dirname, 'dist')));
 
@@ -37,6 +38,15 @@ app.get('/api/buckets/:bucket', (req, res, next)=> {
   })
   .then( result => res.send(result.Contents))
   .catch(next);
+});
+
+const upload = require('./upload');
+
+app.post('/api/buckets/:bucket', (req, res, next)=> {
+  upload(req.body.data, S3, req.params.bucket)
+    .then( url => res.send(url))
+    .catch(next);
+
 });
 
 const port = process.env.PORT || 3000;
